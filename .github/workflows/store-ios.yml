@@ -1,0 +1,17 @@
+name: iOS (App Store check)
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults: {run: {working-directory: store}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm ci
+      - run: npm run sync
+      - name: Build for iOS Simulator (verifies the project compiles)
+        working-directory: store/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
