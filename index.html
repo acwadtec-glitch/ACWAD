@@ -172,7 +172,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
 
   <div class="topbar">
     <button class="tbtn" id="tb-help" type="button">شرح اللعبة</button>
-    <button class="tbtn acc" id="tb-dl" type="button">تنزيل على الموبايل</button>
+    <button class="tbtn acc" id="tb-dl" type="button">تنزيل اللعبة</button>
   </div>
 
   <div class="hud">
@@ -289,6 +289,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
       <div class="dl-status" id="dl-status" role="status"></div>
       <div class="row">
         <button class="btn primary" id="dl-inst" type="button">ثبّت التطبيق</button>
+        <a class="btn" id="dl-apk" href="downloads/code-world.apk" download style="display:none;text-decoration:none;align-items:center;justify-content:center;box-sizing:border-box">نزّل ملف أندرويد (APK)</a>
         <button class="btn" id="dl-go" type="button">نزّل ملف أوفلاين</button>
         <button class="btn" id="dl-close" type="button">إغلاق</button>
       </div>
@@ -1762,11 +1763,13 @@ function renderDl(){
   if(P==='ios'){n.textContent='آيفون / آيباد: لازم تفتح اللعبة من Safari.';
     x=['دوس زرار المشاركة (المربع اللي فيه سهم لفوق).','اختار "إضافة إلى الشاشة الرئيسية".','دوس "إضافة". هتلاقي الأيقونة وتفتح زي أي تطبيق.']}
   else if(P==='android'){n.textContent='أندرويد: من Chrome.';
-    x=DL.ev?['دوس "ثبّت التطبيق" وبعدين "تثبيت".']:['دوس على قائمة Chrome (النقط التلاتة).','اختار "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".','أكّد، وهتلاقي الأيقونة على الشاشة.']}
+    x=DL.ev?['دوس "ثبّت التطبيق" وبعدين "تثبيت".']:['دوس على قائمة Chrome (النقط التلاتة).','اختار "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".','أكّد، وهتلاقي الأيقونة على الشاشة.'];
+    if(window.__PWA__)x=x.concat(['أو نزّل ملف الـAPK، وافتحه، ووافق على "التثبيت من هذا المصدر" لو طلب منك.'])}
   else{n.textContent='كمبيوتر: من Chrome أو Edge.';
     x=DL.ev?['دوس "ثبّت التطبيق" وبعدين "تثبيت".']:['دوس أيقونة التثبيت في آخر شريط العنوان، أو قائمة المتصفح ثم "تثبيت".','هتفتح اللعبة في نافذة لوحدها وتلاقيها في قائمة التطبيقات.']}
   L.innerHTML='';x.forEach(function(t){var li=document.createElement('li');li.textContent=t;L.appendChild(li)});
   $('dl-inst').style.display=(P==='ios')?'none':'';
+  $('dl-apk').style.display=(window.__PWA__&&P==='android')?'inline-flex':'none';
 }
 function openDl(){$('dl-status').textContent='';renderDl();$('dl').classList.add('show');setTimeout(function(){$('dl-inst').focus()},30)}
 function closeDl(){$('dl').classList.remove('show')}
@@ -1797,6 +1800,7 @@ $('dl-go').addEventListener('click',async function(){
 });
 if(window.__OFFLINE__)app.classList.add('offline-build');
 if(window.__PWA__)$('dl-go').style.display='none';
+try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())$('tb-dl').style.display='none'}catch(e){}
 
 /* ---------- registration ---------- */
 var REG={on:false,g:'',cancel:false};
