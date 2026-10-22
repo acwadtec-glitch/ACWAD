@@ -266,6 +266,15 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
     </div>
   </div>
 
+  <div class="overlay top7" id="prev" role="dialog" aria-modal="true" aria-labelledby="prev-title" style="background:none;backdrop-filter:none;align-items:flex-end;pointer-events:none">
+    <div class="card" style="pointer-events:auto;margin-bottom:12px;text-align:center;background:rgba(7,11,20,.9);border:1px solid var(--hair);border-top:3px solid var(--accent);padding:14px 26px">
+      <div class="kicker">// LOCKED CHARACTER</div>
+      <h1 id="prev-title" style="font-size:clamp(28px,6vw,40px)">نوفا</h1>
+      <p>هتفتح بعد ما تخلّص 3 سيرفرات.</p>
+      <div class="row" style="justify-content:center"><button class="btn primary" id="prev-back" type="button">رجوع</button></div>
+    </div>
+  </div>
+
   <div class="overlay top7 intro" id="reg" role="dialog" aria-modal="true" aria-labelledby="reg-title">
     <div class="card">
       <div class="kicker">// PLAYER</div>
@@ -526,14 +535,32 @@ function setChar(id){
   if(id!=='nova')id=baseChar();
   if(id==='nova'&&!novaUnlocked())return;
   CHAR.sel=id;try{localStorage.setItem('codeworld-char',id)}catch(e){}
-  if(hero&&scene){
-    var old=hero,p=old.position.clone(),ry=old.rotation.y;
-    if(heroTag)old.remove(heroTag.sp);
-    scene.remove(old);disposeGroup(old);
-    hero=makeHero(heroOpt());hero.position.copy(p);hero.rotation.y=ry;scene.add(hero);
-    if(heroTag)hero.add(heroTag.sp);
-  }
+  if(hero&&scene)swapHero(heroOpt());
   renderChars();
+}
+function swapHero(opt){
+  var old=hero,p=old.position.clone(),ry=old.rotation.y;
+  if(heroTag)old.remove(heroTag.sp);
+  scene.remove(old);disposeGroup(old);
+  hero=makeHero(opt);hero.position.copy(p);hero.rotation.y=ry;scene.add(hero);
+  if(heroTag)hero.add(heroTag.sp);
+}
+var PREV={on:false};
+function openPrev(){
+  if(PREV.on||S.mode!=='menu')return;
+  PREV.on=true;swapHero({style:'nova'});
+  if(heroTag)heroTag.sp.visible=false;
+  $('screen').classList.remove('show');$('prev').classList.add('show');
+  snapCamera();
+  setTimeout(function(){$('prev-back').focus()},30);
+}
+function closePrev(){
+  if(!PREV.on)return;
+  PREV.on=false;swapHero(heroOpt());
+  if(heroTag)heroTag.sp.visible=!!PROF.name;
+  $('prev').classList.remove('show');$('screen').classList.add('show');
+  snapCamera();
+  setTimeout(function(){$('s-btn').focus()},30);
 }
 function renderChars(){
   var box=$('s-char');if(!box)return;
@@ -542,8 +569,8 @@ function renderChars(){
     var lock=c[0]==='nova'&&!novaUnlocked();
     var b=document.createElement('button');b.type='button';
     b.className='btn'+(CHAR.sel===c[0]?' primary':'');
-    b.textContent=c[1]+(lock?' · مقفولة':'');b.disabled=lock;
-    b.addEventListener('click',function(){setChar(c[0])});
+    b.textContent=c[1]+(lock?' · مقفولة':'');
+    b.addEventListener('click',function(){if(lock)openPrev();else setChar(c[0])});
     box.appendChild(b);
   });
   var eb=document.createElement('button');eb.type='button';eb.className='btn';eb.textContent='تعديل الاسم والنوع';
@@ -1303,6 +1330,7 @@ var K={up:0,down:0,left:0,right:0},JOY={x:0,y:0};
 var KEYMAP={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
 function resetKeys(){K.up=K.down=K.left=K.right=0}
 window.addEventListener('keydown',function(e){
+  if(PREV.on){if(e.key==='Escape')closePrev();return}
   if(REG.on){
     if(e.key==='Enter'&&e.target&&e.target.tagName==='INPUT'){e.preventDefault();$('reg-go').click()}
     else if(e.key==='Escape'&&REG.cancel)$('reg-cancel').click();
@@ -1458,12 +1486,12 @@ function animateWorld(dt,t){
   if(blinkT<=0){blinkT=.45;blinkRacks()}
 }
 function camTarget(){
-  var menu=S.mode==='menu',d=menu?15:9.5,h=menu?7.5:6.2;
+  var menu=S.mode==='menu',pv=menu&&PREV.on,d=pv?6.4:(menu?15:9.5),h=pv?3:(menu?7.5:6.2);
   return{x:hero.position.x+Math.sin(camYaw)*d,y:h,z:hero.position.z+Math.cos(camYaw)*d};
 }
 function snapCamera(){
   var c=camTarget();camera.position.set(c.x,c.y,c.z);
-  camera.lookAt(hero.position.x,1.6,hero.position.z);
+  camera.lookAt(hero.position.x,(PREV.on&&S.mode==='menu')?.2:1.6,hero.position.z);
 }
 function updateCamera(dt){
   if(S.mode==='menu')camYaw+=dt*.15;
@@ -1471,7 +1499,7 @@ function updateCamera(dt){
   camera.position.x+=(c.x-camera.position.x)*k;
   camera.position.y+=(c.y-camera.position.y)*k;
   camera.position.z+=(c.z-camera.position.z)*k;
-  camera.lookAt(hero.position.x,1.6,hero.position.z);
+  camera.lookAt(hero.position.x,(PREV.on&&S.mode==='menu')?.2:1.6,hero.position.z);
 }
 
 var last=0;
@@ -1802,6 +1830,7 @@ if(window.__OFFLINE__)app.classList.add('offline-build');
 if(window.__PWA__)$('dl-go').style.display='none';
 try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())$('tb-dl').style.display='none'}catch(e){}
 
+$('prev-back').addEventListener('click',closePrev);
 /* ---------- registration ---------- */
 var REG={on:false,g:'',cancel:false};
 function regRender(){[].forEach.call($('reg-g').children,function(b){b.className='btn'+(b.getAttribute('data-g')===REG.g?' primary':'')})}
