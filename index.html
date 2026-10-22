@@ -91,6 +91,8 @@ button{font-family:inherit}
 .fb.bad b{color:var(--bad)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row .grow{flex:1}
+.field{display:grid;gap:6px;margin:12px 0 8px;font-size:14px;color:var(--muted)}.field input{font:inherit;font-size:18px;color:var(--fg);padding:10px 12px;min-height:44px;background:#0b1224;border:1px solid var(--hair);width:100%;box-sizing:border-box}.field input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.gender{display:flex;gap:8px;margin:8px 0 6px}.gender .btn{flex:1;font-size:17px;min-height:52px}
 .chars{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 4px}.char-hint{font-size:13px;color:var(--muted);margin-bottom:10px}
 .btn{font-weight:700;font-size:15px;padding:10px 18px;min-height:44px;border:1px solid var(--hair);background:transparent;color:var(--fg);cursor:pointer}
 .btn:hover:not(:disabled){border-color:var(--fg)}
@@ -261,6 +263,19 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
         <button class="btn primary" id="in-next" type="button">التالي</button>
         <button class="btn" id="in-skip" type="button">تخطي</button>
       </div>
+    </div>
+  </div>
+
+  <div class="overlay top7 intro" id="reg" role="dialog" aria-modal="true" aria-labelledby="reg-title">
+    <div class="card">
+      <div class="kicker">// PLAYER</div>
+      <h1 id="reg-title" style="font-size:clamp(30px,7vw,48px)">سجّل بياناتك</h1>
+      <p>اكتب اسمك واختار شخصيتك. الاسم بيظهر فوق شخصيتك، واللاعبين التانيين بيشوفوه أونلاين.</p>
+      <label class="field"><span>الاسم</span><input id="reg-name" type="text" maxlength="14" autocomplete="off" placeholder="اكتب اسمك"></label>
+      <div class="field" style="margin:4px 0 0"><span>أنت</span></div>
+      <div class="gender" id="reg-g"><button class="btn" type="button" data-g="boy">ولد</button><button class="btn" type="button" data-g="girl">بنت</button></div>
+      <div class="dl-status" id="reg-err" role="alert"></div>
+      <div class="row"><button class="btn primary" id="reg-go" type="button">ابدأ</button><button class="btn" id="reg-cancel" type="button" hidden>إلغاء</button></div>
     </div>
   </div>
 
@@ -436,9 +451,38 @@ function makeNova(opt){
   if(opt.light!==false){var pl=new THREE.PointLight(0x35e0ff,.8,9);pl.position.set(0,1.4,0);g.add(pl)}
   return g;
 }
+function makeGirl(opt){
+  var g=new THREE.Group();
+  var M=function(c,e,ei){return new THREE.MeshStandardMaterial({color:c,emissive:e||0x000000,emissiveIntensity:ei||0,roughness:.65,metalness:.1})};
+  var skin=M(0xf0c4a4),top=M(0xb8326f,0xb8326f,.15),trim=M(0xffb02e,0xffb02e,.5),skirt=M(0x1b2540),legs=M(0x151c33),shoe=M(0xf1e6f5),hair=M(0x2a1710),bow=M(0xff3d8b,0xff3d8b,.6),pack=M(0x1b2540,0x27d6c5,.2);
+  var eye=new THREE.MeshBasicMaterial({color:0x27d6c5});
+  function box(w,h,d,m,x,y,z,parent){var mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);(parent||g).add(mesh);return mesh}
+  box(.74,.8,.42,top,0,1.3,0);
+  box(.76,.09,.44,trim,0,.9,0);
+  box(.92,.44,.52,skirt,0,.72,0);
+  box(.94,.05,.54,trim,0,.5,0);
+  box(.56,.62,.2,pack,0,1.3,-.31);
+  var head=new THREE.Group();head.position.set(0,1.98,0);g.add(head);
+  box(.52,.52,.5,skin,0,0,0,head);
+  box(.58,.24,.56,hair,0,.22,-.02,head);
+  box(.54,.12,.04,hair,0,.17,.27,head);
+  box(.08,.5,.5,hair,-.3,-.05,-.02,head);box(.08,.5,.5,hair,.3,-.05,-.02,head);
+  box(.5,.55,.18,hair,0,-.08,-.32,head);
+  box(.2,.2,.2,bow,0,.16,-.46,head);
+  box(.2,.9,.2,hair,0,-.42,-.5,head);
+  box(.1,.1,.04,eye,-.12,.04,.27,head);box(.1,.1,.04,eye,.12,.04,.27,head);
+  function limb(x,y,w,h,m1,m2){var p=new THREE.Group();p.position.set(x,y,0);g.add(p);box(w,h,w,m1,0,-h/2,0,p);box(w,.16,w,m2,0,-h+.08,0,p);return p}
+  g.userData={
+    armL:limb(-.52,1.62,.2,.78,top,skin),armR:limb(.52,1.62,.2,.78,top,skin),
+    legL:limb(-.2,.82,.26,.82,legs,shoe),legR:limb(.2,.82,.26,.82,legs,shoe)
+  };
+  if(opt.light!==false){var pl=new THREE.PointLight(0xff3d8b,.55,9);pl.position.set(0,1.2,0);g.add(pl)}
+  return g;
+}
 function makeHero(opt){
   opt=opt||{};
   if(opt.style==='nova')return makeNova(opt);
+  if(opt.style==='girl')return makeGirl(opt);
   var g=new THREE.Group();
   var M=function(c,e,ei){return new THREE.MeshStandardMaterial({color:c,emissive:e||0x000000,emissiveIntensity:ei||0,roughness:.65,metalness:.1})};
   var skin=M(0xe8b98f),hood=M(opt.hood||0x2b3f8f),trim=M(0xffb02e,0xffb02e,.5),pants=M(0x151c33),shoe=M(0xe8eefc),hair=M(0x1a1410);
@@ -460,25 +504,40 @@ function makeHero(opt){
   return g;
 }
 
-var NOVA_MEM=false,CHAR={sel:'coder'};
+var NOVA_MEM=false,CHAR={sel:'boy'},PROF={name:'',gender:''},PROF_MEM=null,heroTag=null;
+function cleanName(v){return String(v==null?'':v).replace(/[\u0000-\u001f\u007f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,14)}
+function loadProfile(){
+  var o=PROF_MEM;
+  if(!o){try{o=JSON.parse(localStorage.getItem('codeworld-profile')||'null')}catch(e){o=null}}
+  if(o&&cleanName(o.name)&&(o.gender==='boy'||o.gender==='girl')){PROF.name=cleanName(o.name);PROF.gender=o.gender;return true}
+  return false;
+}
+function saveProfile(){PROF_MEM={name:PROF.name,gender:PROF.gender};try{localStorage.setItem('codeworld-profile',JSON.stringify(PROF_MEM))}catch(e){}}
+function baseChar(){return PROF.gender==='girl'?'girl':'boy'}
+var HAS_PROF=loadProfile();
 function novaUnlocked(){if(NOVA_MEM)return true;try{return localStorage.getItem('codeworld-nova')==='1'}catch(e){return false}}
 function unlockNova(){NOVA_MEM=true;try{localStorage.setItem('codeworld-nova','1')}catch(e){}}
+CHAR.sel=baseChar();
 try{if(localStorage.getItem('codeworld-char')==='nova'&&novaUnlocked())CHAR.sel='nova'}catch(e){}
-function heroOpt(){return CHAR.sel==='nova'?{style:'nova'}:{}}
+function heroOpt(){return CHAR.sel==='nova'?{style:'nova'}:(CHAR.sel==='girl'?{style:'girl'}:{})}
+function charCode(){return CHAR.sel==='nova'?1:(CHAR.sel==='girl'?2:0)}
 function setChar(id){
+  if(id!=='nova')id=baseChar();
   if(id==='nova'&&!novaUnlocked())return;
   CHAR.sel=id;try{localStorage.setItem('codeworld-char',id)}catch(e){}
   if(hero&&scene){
     var old=hero,p=old.position.clone(),ry=old.rotation.y;
+    if(heroTag)old.remove(heroTag.sp);
     scene.remove(old);disposeGroup(old);
     hero=makeHero(heroOpt());hero.position.copy(p);hero.rotation.y=ry;scene.add(hero);
+    if(heroTag)hero.add(heroTag.sp);
   }
   renderChars();
 }
 function renderChars(){
   var box=$('s-char');if(!box)return;
   box.textContent='';
-  [['coder','المبرمج'],['nova','نوفا']].forEach(function(c){
+  [[baseChar(),PROF.gender==='girl'?'المبرمجة':'المبرمج'],['nova','نوفا']].forEach(function(c){
     var lock=c[0]==='nova'&&!novaUnlocked();
     var b=document.createElement('button');b.type='button';
     b.className='btn'+(CHAR.sel===c[0]?' primary':'');
@@ -486,6 +545,8 @@ function renderChars(){
     b.addEventListener('click',function(){setChar(c[0])});
     box.appendChild(b);
   });
+  var eb=document.createElement('button');eb.type='button';eb.className='btn';eb.textContent='تعديل الاسم والنوع';
+  eb.addEventListener('click',function(){openReg(true)});box.appendChild(eb);
   $('s-charhint').textContent=novaUnlocked()?'':'نوفا بتتفتح لما تخلّص 3 سيرفرات.';
 }
 function init(){
@@ -496,6 +557,7 @@ function init(){
   scene.add(new THREE.HemisphereLight(0xa9bdff,0x1a1030,.85));
   var dl=new THREE.DirectionalLight(0xffffff,.55);dl.position.set(20,40,10);scene.add(dl);
   hero=makeHero(heroOpt());scene.add(hero);
+  heroTag=makeTag();drawTag(heroTag,PROF.name||'');heroTag.sp.visible=!!PROF.name;hero.add(heroTag.sp);
   resize();
   if(window.ResizeObserver)new ResizeObserver(resize).observe(app);else window.addEventListener('resize',resize);
 }
@@ -1036,8 +1098,8 @@ function saveBest(v){try{if(v>bestScore())localStorage.setItem('codeworld-best',
 
 function showMenu(){
   var b=bestScore();
-  showScreen({menu:true,kicker:'// SERVER HALL',title:'عالم <span>الأكواد</span>',
-    text:'امشي جوه قاعة سيرفرات ضخمة بين الرايكات والكابلات. كل جهاز هتقابله فيه لغز برمجي أو سؤال أو عملية حسابية. حلّ كل الأجهزة عشان تفتح البوابة للقاعة اللي بعدها.',
+  showScreen({menu:true,kicker:'// SERVER HALL'+(PROF.name?(' · '+PROF.name):''),title:'عالم <span>الأكواد</span>',
+    text:(PROF.name?('أهلًا يا '+PROF.name+'. '):'')+'امشي جوه قاعة سيرفرات ضخمة بين الرايكات والكابلات. كل جهاز هتقابله فيه لغز برمجي أو سؤال أو عملية حسابية. حلّ كل الأجهزة عشان تفتح البوابة للقاعة اللي بعدها.',
     stat:b?('أفضل نتيجة: '+b):'',keys:true,lb:!window.__OFFLINE__,btn:window.__OFFLINE__?'ابدأ اللعب':'العب أونلاين',onClick:function(){S.online=window.__OFFLINE__?false:!!NET.room;S.score=0;startHum();warpTo(0,true)},btn2:window.__OFFLINE__?'':'العب أوفلاين',onClick2:function(){S.online=false;S.score=0;startHum();warpTo(0,true)}});
 }
 function startLevel(i,keep){
@@ -1240,6 +1302,11 @@ var K={up:0,down:0,left:0,right:0},JOY={x:0,y:0};
 var KEYMAP={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
 function resetKeys(){K.up=K.down=K.left=K.right=0}
 window.addEventListener('keydown',function(e){
+  if(REG.on){
+    if(e.key==='Enter'&&e.target&&e.target.tagName==='INPUT'){e.preventDefault();$('reg-go').click()}
+    else if(e.key==='Escape'&&REG.cancel)$('reg-cancel').click();
+    return;
+  }
   if(INTRO.on){
     if(e.key==='Escape')closeIntro();
     else if(e.key==='ArrowRight')$('in-prev').click();
@@ -1450,7 +1517,7 @@ function addRemote(p){
 function setRemoteStyle(r,h){
   var old=r.g;
   old.remove(r.tag.sp);
-  var g=makeHero(h?{style:'nova',light:false}:{hood:hueColor(r.by||'x'),light:false});
+  var g=makeHero(h===1?{style:'nova',light:false}:(h===2?{style:'girl',light:false}:{hood:hueColor(r.by||'x'),light:false}));
   g.position.copy(old.position);g.rotation.copy(old.rotation);g.visible=old.visible;
   scene.remove(old);disposeGroup(old);
   g.add(r.tag.sp);scene.add(g);r.g=g;r.h=h;
@@ -1459,7 +1526,7 @@ function removeRemote(k){var r=REM[k];if(!r)return;scene.remove(r.g);disposeGrou
 function clearRemotes(){Object.keys(REM).forEach(removeRemote)}
 function applyNames(){
   Object.keys(REM).forEach(function(k){
-    var r=REM[k],nm=(r.by&&NET.names[r.by])||'لاعب';
+    var r=REM[k],nm=r.pn||(r.by&&NET.names[r.by])||'لاعب';
     if(nm!==r.name){r.name=nm;drawTag(r.tag,nm)}
   });
   rosterRender();
@@ -1483,7 +1550,8 @@ function onNetPeers(ch){
     var r=REM[p.peer]||addRemote(p),pr=p.presence||{};
     r.by=p.by;
     if(typeof pr.x==='number'&&typeof pr.z==='number'){r.tx=nnum(pr.x,-200,200);r.tz=nnum(pr.z,-200,200);r.tr=nnum(pr.r,-7,7)}
-    var hh=nnum(pr.h,0,1);if(hh!==r.h)setRemoteStyle(r,hh);
+    var hh=Math.round(nnum(pr.h,0,2));if(hh!==r.h)setRemoteStyle(r,hh);
+    r.pn=cleanName(pr.n);
     r.s=nnum(pr.s,0,99);r.t=nnum(pr.t,0,99);r.sc=nnum(pr.c,0,1000000);
   }
   Object.keys(REM).forEach(function(k){if(!seen[k])removeRemote(k)});
@@ -1509,8 +1577,8 @@ function sendPresence(force){
   var r=NET.named;
   if(!r||!S.online)return;
   var now=performance.now();
-  var pr={x:+hero.position.x.toFixed(2),z:+hero.position.z.toFixed(2),r:+hero.rotation.y.toFixed(2),s:S.solved,t:S.total,c:S.score,h:CHAR.sel==='nova'?1:0};
-  var sig=pr.x+','+pr.z+','+pr.r+','+pr.s+','+pr.c+','+pr.h;
+  var pr={x:+hero.position.x.toFixed(2),z:+hero.position.z.toFixed(2),r:+hero.rotation.y.toFixed(2),s:S.solved,t:S.total,c:S.score,h:charCode(),n:PROF.name};
+  var sig=pr.x+','+pr.z+','+pr.r+','+pr.s+','+pr.c+','+pr.h+','+pr.n;
   if(!force&&(sig===NET.lastSig||now-NET.lastSend<100))return;
   NET.lastSig=sig;NET.lastSend=now;
   if(typeof r.presence==='function')Promise.resolve(r.presence(pr)).catch(noop);
@@ -1544,7 +1612,7 @@ async function netJoin(i){
 function rosterRender(){
   var el=$('roster'),list=[];
   if(S.online&&NET.named){
-    list.push({name:'أنت',sc:S.score,s:S.solved,t:S.total,me:1});
+    list.push({name:PROF.name?(PROF.name+' (أنت)'):'أنت',sc:S.score,s:S.solved,t:S.total,me:1});
     Object.keys(REM).forEach(function(k){var r=REM[k];list.push({name:r.name||'لاعب',sc:r.sc,s:r.s,t:r.t})});
   }
   if(list.length<2){
@@ -1730,13 +1798,39 @@ $('dl-go').addEventListener('click',async function(){
 if(window.__OFFLINE__)app.classList.add('offline-build');
 if(window.__PWA__)$('dl-go').style.display='none';
 
+/* ---------- registration ---------- */
+var REG={on:false,g:'',cancel:false};
+function regRender(){[].forEach.call($('reg-g').children,function(b){b.className='btn'+(b.getAttribute('data-g')===REG.g?' primary':'')})}
+function openReg(canCancel){
+  REG.on=true;REG.cancel=!!canCancel;REG.g=PROF.gender||'';
+  $('reg-name').value=PROF.name||'';$('reg-err').textContent='';
+  $('reg-cancel').hidden=!canCancel;
+  regRender();$('reg').classList.add('show');
+  setTimeout(function(){$('reg-name').focus()},30);
+}
+function closeReg(){REG.on=false;$('reg').classList.remove('show')}
+[].forEach.call($('reg-g').children,function(b){b.addEventListener('click',function(){REG.g=b.getAttribute('data-g');$('reg-err').textContent='';regRender()})});
+$('reg-cancel').addEventListener('click',closeReg);
+$('reg-go').addEventListener('click',function(){
+  var n=cleanName($('reg-name').value),er=$('reg-err');
+  if(!n){er.textContent='اكتب اسمك الأول.';$('reg-name').focus();return}
+  if(!REG.g){er.textContent='اختار ولد ولا بنت.';return}
+  PROF.name=n;PROF.gender=REG.g;saveProfile();
+  if(CHAR.sel!=='nova')setChar(baseChar());
+  if(heroTag){drawTag(heroTag,n);heroTag.sp.visible=true}
+  if(S.mode==='menu')showMenu();
+  if(NET.named)sendPresence(true);
+  closeReg();
+  if(!seenIntro())openIntro();
+});
+
 /* ---------- boot ---------- */
 try{init()}catch(err){$('nogl').classList.add('show');$('screen').classList.remove('show');return}
 S.level=0;buildLevel(0);S.total=terminals.length;hero.position.set(0,0,0);
 camYaw=Math.atan2(terminals[0].x,terminals[0].z);
 snapCamera();hud();
 showMenu();netInit();
-if(!seenIntro())openIntro();
+if(!HAS_PROF)openReg(false);else if(!seenIntro())openIntro();
 requestAnimationFrame(frame);
 })();
 </script>
