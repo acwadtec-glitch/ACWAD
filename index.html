@@ -189,6 +189,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
   .card p{font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){#arrow{transition:none}}
+.lvlpick{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}.lvlpick select{font:inherit;font-size:16px;color:var(--fg);background:#0b1224;border:1px solid var(--hair);padding:8px 10px;min-height:40px}
 .coins{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-weight:700;font-size:16px;color:var(--accent);font-variant-numeric:tabular-nums}
 .coin-ic{display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc42e 55%,#b8791a);box-shadow:0 0 6px rgba(255,176,46,.6);flex:none;vertical-align:middle}
 .coins.pulse{animation:cpulse .35s}
@@ -277,6 +278,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
       <div class="stat" id="s-stat" hidden></div>
       <div class="net-line" id="s-net" hidden></div>
       <div id="s-lbwrap" hidden><div class="lb-h">المتصدرين</div><ol class="lb" id="s-lb"></ol></div>
+      <div class="lvlpick" id="s-lvlwrap" hidden><label for="s-lvl">ابدأ من السيرفر</label><select id="s-lvl"></select></div>
       <div class="chars" id="s-char" hidden></div><div class="char-hint" id="s-charhint" hidden></div>
       <dl class="keys" id="s-keys" hidden>
         <dt>الحركة</dt><dd><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> أو الأسهم</dd>
@@ -413,6 +415,20 @@ var LEVELS=[
   {name:'المرحلة 2 · مركز البيانات',host:'srv-alex-02',ip:'10.0.2.22',size:58,tiers:[1,2,2,2,3,2],seed:23,sky:0x0a0a1c,ground:0x100f26,line:0x8d7bff},
   {name:'المرحلة 3 · قلب الكلاستر',host:'srv-dubai-03',ip:'10.0.3.33',size:72,tiers:[2,3,3,2,3,3,3],seed:37,sky:0x120a0e,ground:0x1a0f14,line:0xff5d8f}
 ];
+(function(){
+  var kinds=['مركز البيانات','غرفة السيرفرات','قلب الكلاستر','مستودع الأكواد','برج الشبكة','قبو التشفير','مخزن الذاكرة'];
+  var cities=[['القاهرة','cairo'],['الإسكندرية','alex'],['دبي','dubai'],['الرياض','riyadh'],['الدوحة','doha'],['عمّان','amman'],['بيروت','beirut'],['تونس','tunis'],['الرباط','rabat'],['مسقط','muscat'],['الكويت','kuwait'],['بغداد','baghdad'],['الخرطوم','khartoum'],['طرابلس','tripoli'],['الجزائر','algiers']];
+  for(var i=3;i<50;i++){
+    var r=mulberry32(i*977+31),p=i/49,hue=((i*47)%360)/360;
+    var n=Math.min(11,5+Math.floor(i/8)),tiers=[],k,p1=.6-.5*p,p2=p1+.3;
+    for(k=0;k<n;k++){var q=r();tiers.push(q<p1?1:(q<p2?2:3))}
+    if(i>=10&&tiers.indexOf(3)<0)tiers[n-1]=3;
+    var c=cities[i%cities.length],num=i+1;
+    LEVELS.push({name:'المرحلة '+num+' · '+kinds[i%kinds.length]+' '+c[0],host:'srv-'+c[1]+'-'+(num<10?'0':'')+num,ip:'10.0.'+num+'.'+(11*num%240+11),
+      size:Math.min(84,46+Math.round(i*.85)),tiers:tiers,seed:i*131+7,
+      sky:new THREE.Color().setHSL(hue,.5,.05).getHex(),ground:new THREE.Color().setHSL(hue,.4,.08).getHex(),line:new THREE.Color().setHSL(hue,.75,.62).getHex()});
+  }
+})();
 var MAXSCORE=0;LEVELS.forEach(function(L){L.tiers.forEach(function(t){MAXSCORE+=100*t+40})});
 
 /* ---------- puzzles ---------- */
@@ -812,7 +828,17 @@ function thumb(d){
   if(has('book'))F(0x7a3b1e,2,34,8,9);
   return c;
 }
-var COIN_MEM=null,OWN_MEM=null,coins=[];
+var COIN_MEM=null,OWN_MEM=null,coins=[],REACH_MEM=null;
+function getReach(){if(REACH_MEM!==null)return REACH_MEM;try{REACH_MEM=Math.max(0,parseInt(localStorage.getItem('codeworld-reach')||'0',10)||0)}catch(e){REACH_MEM=0}return REACH_MEM}
+function setReach(v){if(v<=getReach())return;REACH_MEM=v;try{localStorage.setItem('codeworld-reach',String(v))}catch(e){}}
+function startFrom(){var e=$('s-lvl');return Math.max(0,Math.min(LEVELS.length-1,(e&&+e.value?+e.value:1)-1))}
+function lvlRender(){
+  var e=$('s-lvl');if(!e)return;var top=Math.min(LEVELS.length,getReach()+1),cur=e.value?+e.value:top;
+  e.textContent='';
+  for(var i=1;i<=top;i++){var o=document.createElement('option');o.value=i;o.textContent=i+' من '+LEVELS.length;e.appendChild(o)}
+  e.value=String(Math.min(cur,top));if(!e.value)e.value=String(top);
+  $('s-lvlwrap').hidden=top<2;
+}
 function getCoins(){
   if(COIN_MEM!==null)return COIN_MEM;
   try{COIN_MEM=Math.max(0,parseInt(localStorage.getItem('codeworld-coins')||'0',10)||0)}catch(e){COIN_MEM=0}
@@ -1653,7 +1679,7 @@ function musStep(t,step,sp){
 }
 function musTick(){
   if(!MUS.on||!AC||AC.state!=='running')return;
-  MUS.shift=[0,5,7][S.level]||0;
+  MUS.shift=[0,5,7][S.level%3]||0;
   var sp=60/MUS.tempo/4;
   if(MUS.next<AC.currentTime)MUS.next=AC.currentTime+.05;
   while(MUS.next<AC.currentTime+.25){
@@ -1737,7 +1763,7 @@ function showScreen(o){
   $('s-btn').disabled=!!o.menu&&!NET.room&&!window.__OFFLINE__;
   var b2=$('s-btn2');b2.hidden=!o.btn2;b2.textContent=o.btn2||'';b2.onclick=o.onClick2||null;
   $('s-net').hidden=!o.menu;
-  $('s-char').hidden=!o.menu;$('s-charhint').hidden=!o.menu;if(o.menu)renderChars();
+  $('s-char').hidden=!o.menu;if(o.menu)lvlRender();else $('s-lvlwrap').hidden=true;$('s-charhint').hidden=!o.menu;if(o.menu)renderChars();
   $('s-lbwrap').hidden=!o.lb;
   if(o.lb)lbRender();
   updateNetUI();
@@ -1753,7 +1779,7 @@ function showMenu(){
   var b=bestScore();
   showScreen({menu:true,kicker:'// SERVER HALL'+(PROF.name?(' · '+PROF.name):''),title:'عالم <span>الأكواد</span>',
     text:(PROF.name?('أهلًا يا '+PROF.name+'. '):'')+'امشي جوه قاعة سيرفرات ضخمة بين الرايكات والكابلات. كل جهاز هتقابله فيه لغز برمجي أو سؤال أو عملية حسابية. حلّ كل الأجهزة عشان تفتح البوابة للقاعة اللي بعدها.',
-    stat:b?('أفضل نتيجة: '+b):'',keys:true,lb:!window.__OFFLINE__,btn:window.__OFFLINE__?'ابدأ اللعب':'العب أونلاين',onClick:function(){S.online=window.__OFFLINE__?false:!!NET.room;S.score=0;startHum();warpTo(0,true)},btn2:window.__OFFLINE__?'':'العب أوفلاين',onClick2:function(){S.online=false;S.score=0;startHum();warpTo(0,true)}});
+    stat:b?('أفضل نتيجة: '+b):'',keys:true,lb:!window.__OFFLINE__,btn:window.__OFFLINE__?'ابدأ اللعب':'العب أونلاين',onClick:function(){S.online=window.__OFFLINE__?false:!!NET.room;S.score=0;startHum();warpTo(startFrom(),true)},btn2:window.__OFFLINE__?'':'العب أوفلاين',onClick2:function(){S.online=false;S.score=0;startHum();warpTo(startFrom(),true)}});
 }
 function startLevel(i,keep){
   S.level=i;S.levelStartScore=S.score;S.energy=3;S.solved=0;S.near=null;S.lvlCoins=0;
@@ -1773,9 +1799,10 @@ function gameOver(){
   showScreen({kicker:'ENERGY: 0',title:'السيستم <span>وقع</span>',text:'الطاقة خلصت. هنرجع لأول المرحلة بنقاطك اللي قبلها.',btn:'حاول تاني',onClick:function(){startLevel(S.level)}});
 }
 function levelDone(){
-  sfx('portal');saveBest(S.score);pushScore(S.level+1);addCoins(10);S.lvlCoins=(S.lvlCoins||0)+10;
+  var newNova=false;if(S.level>=2&&!novaUnlocked()){unlockNova();newNova=true;S.novaNew=true}
+  sfx('portal');saveBest(S.score);pushScore(S.level+1);setReach(S.level+1);addCoins(10);S.lvlCoins=(S.lvlCoins||0)+10;
   if(S.level>=LEVELS.length-1){
-    var fresh=false;if(S.level>=2&&!novaUnlocked()){unlockNova();fresh=true}
+    var fresh=false;
     var r=S.score/MAXSCORE,rank=r>=.85?'أسطورة الأكواد':r>=.65?'مهندس برمجيات':r>=.4?'مبرمج شاطر':'مبتدئ واعد';
     showScreen({kicker:'ALL PORTALS OPEN',title:'خلّصت <span>العالم</span>',text:'عدّيت كل المراحل. رتبتك: '+rank+'. جمعت '+(S.lvlCoins||0)+' عملة في آخر قاعة، ورصيدك '+getCoins()+' عملة. تقدر تشتري شخصيات من المتجر.'+(fresh?' واتفتحت شخصية جديدة: نوفا. تقدر تختارها من القايمة الرئيسية في أي وقت.':''),stat:'نتيجتك '+S.score+' من '+MAXSCORE+' · أفضل نتيجة '+bestScore(),lb:true,btn:'العب من الأول',onClick:function(){S.score=0;warpTo(0,true)},btn2:fresh?'العب بنوفا':'',onClick2:fresh?function(){setChar('nova');S.score=0;warpTo(0,true)}:null});
   }else{
@@ -1802,7 +1829,7 @@ function warpTo(i,first){
   W.lines=['$ ssh admin@'+sv.ip,'> resolving '+sv.host+' ... ok','> key exchange ... ok','> moving session ... 100%','> connected: '+sv.host.toUpperCase()];
   W.stars=[];
   for(var k=0;k<170;k++)W.stars.push({a:Math.random()*Math.PI*2,r:Math.random(),s:.3+Math.random()});
-  $('warp-title').textContent=first?'بنوصّلك بأول سيرفر.':('القاعة '+(fromI+1)+' اتحلّت. نقاطك '+S.score+(S.lvlCoins?('، وجمعت '+S.lvlCoins+' عملة'):'')+'. بننقلك للسيرفر اللي بعده.');
+  $('warp-title').textContent=first?'بنوصّلك بأول سيرفر.':('القاعة '+(fromI+1)+' اتحلّت. نقاطك '+S.score+(S.lvlCoins?('، وجمعت '+S.lvlCoins+' عملة'):'')+'. بننقلك للسيرفر اللي بعده.'+(S.novaNew?' واتفتحت شخصية نوفا!':''));
   $('warp-sub').textContent='-> '+sv.host+' ['+sv.ip+']';
   $('warp-log').textContent='';$('warp-fill').style.width='0%';
   $('warp').classList.add('show');
@@ -1812,6 +1839,7 @@ function warpTo(i,first){
 function finishWarp(){
   if(W.done)return;
   W.done=true;
+  S.novaNew=false;
   if(!W.swapped){W.swapped=true;startLevel(W.next,true)}
   $('warp').classList.remove('show');
   app.setAttribute('data-mode','play');S.mode='play';
