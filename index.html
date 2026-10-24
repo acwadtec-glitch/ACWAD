@@ -68,6 +68,10 @@ button{font-family:inherit}
 .term{width:min(600px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--hair);border-top:3px solid var(--accent);user-select:text;-webkit-user-select:text}
 .term-h{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--hair);font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em;direction:ltr}
 #pz-tier{color:var(--accent);letter-spacing:.3em}
+.boot{padding:22px 18px 18px;display:flex;flex-direction:column;gap:14px;cursor:pointer;min-height:190px;justify-content:center}
+.boot pre{margin:0;font-family:var(--mono);font-size:14px;line-height:1.9;color:var(--cool);direction:ltr;text-align:left;white-space:pre-wrap;min-height:7em}
+.boot .warp-bar i{transition:width .2s linear}
+.bootskip{font-size:12px;color:var(--muted);text-align:center}
 .term-b{display:flex;flex-direction:column;gap:14px;padding:16px 18px 18px}
 #pz-q{margin:0;font-size:19px;font-weight:700;line-height:1.7;text-wrap:balance}
 #pz-code{margin:0;direction:ltr;text-align:left;font-family:var(--mono);font-size:15px;line-height:1.6;background:#070c18;border:1px solid var(--hair);padding:12px 14px;white-space:pre;overflow-x:auto;color:#cfe3ff}
@@ -252,7 +256,8 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
   <div class="overlay" id="puzzle" role="dialog" aria-modal="true" aria-labelledby="pz-q">
     <div class="term">
       <div class="term-h"><span id="pz-id">TERMINAL 01</span><span id="pz-tier" aria-label="الصعوبة"></span></div>
-      <div class="term-b">
+      <div class="boot" id="pz-boot" hidden><pre id="pz-bootlog"></pre><div class="warp-bar"><i id="pz-bootfill"></i></div><div class="bootskip">اضغط للتخطي</div></div>
+      <div class="term-b" id="pz-body">
         <p id="pz-q"></p>
         <pre id="pz-code" hidden></pre>
         <div class="opts" id="pz-opts"></div>
@@ -1914,7 +1919,6 @@ var optsEl=$('pz-opts'),inEl=$('pz-in'),fbEl=$('pz-fb');
 function openPuzzle(t){
   S.mode='puzzle';S.cur=t;S.answered=false;S.hint=false;S.t0=performance.now();
   var p=S.pz=pickPuzzle(t.tier);
-  sfx('open');
   $('pz-id').textContent='TERMINAL '+(t.idx+1<10?'0':'')+(t.idx+1);
   $('pz-tier').textContent=new Array(t.tier+1).join('●')+new Array(4-t.tier).join('○');
   $('pz-q').textContent=p.q;
@@ -1943,15 +1947,34 @@ function openPuzzle(t){
   }
   $('puzzle').classList.add('show');
   resetKeys();
+  startBoot(t);
 }
+var BOOTT=[];
+function endBoot(){
+  BOOTT.forEach(clearTimeout);BOOTT=[];
+  if(!S.booting)return;
+  S.booting=false;$('pz-boot').hidden=true;$('pz-body').hidden=false;
+  if(S.pz&&S.pz.kind==='num'&&!S.answered)setTimeout(function(){inEl.focus()},40);
+}
+function startBoot(t){
+  BOOTT.forEach(clearTimeout);BOOTT=[];
+  S.booting=true;$('pz-boot').hidden=false;$('pz-body').hidden=true;
+  var n=(t.idx+1<10?'0':'')+(t.idx+1),host=LEVELS[S.level].host;
+  var L=['> link terminal-'+n+'@'+host,'> handshake ... ok','> unlocking console ... ok','> TERMINAL '+n+' READY'];
+  var log=$('pz-bootlog'),fill=$('pz-bootfill');log.textContent='';fill.style.width='0%';
+  L.forEach(function(line,i){BOOTT.push(setTimeout(function(){log.textContent+=(i?'\n':'')+line;fill.style.width=((i+1)*25)+'%'},i*260))});
+  BOOTT.push(setTimeout(endBoot,1150));
+}
+$('pz-boot').addEventListener('click',endBoot);
 function closePuzzle(){
+  BOOTT.forEach(clearTimeout);BOOTT=[];S.booting=false;$('pz-boot').hidden=true;$('pz-body').hidden=false;
   $('puzzle').classList.remove('show');
   S.mode='play';resetKeys();
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
 }
 function leavePuzzle(){if(S.answered){$('pz-next').click();return}closePuzzle()}
 function answerMcq(i){
-  if(S.answered)return;
+  if(S.answered||S.booting)return;
   var kids=optsEl.children;
   for(var j=0;j<kids.length;j++){kids[j].disabled=true;if(j===S.correctPos)kids[j].classList.add('good')}
   var ok=i===S.correctPos;
@@ -1959,7 +1982,7 @@ function answerMcq(i){
   finish(ok);
 }
 function answerNum(){
-  if(S.answered)return;
+  if(S.answered||S.booting)return;
   var v=norm(inEl.value);if(!v)return;
   inEl.disabled=true;$('pz-check').disabled=true;
   finish(v===norm(S.pz.ans));
@@ -2042,6 +2065,7 @@ window.addEventListener('keydown',function(e){
   }
   if(S.mode==='warp'){if(e.key==='Enter'||e.key===' '||e.key==='Escape'){e.preventDefault();skipWarp()}return}
   if(S.mode==='puzzle'){
+    if(S.booting&&(e.key==='Enter'||e.key===' ')){e.preventDefault();endBoot();return}
     if(e.key==='Escape'){leavePuzzle();return}
     if(!S.answered&&S.pz&&S.pz.kind==='mcq'&&/^[1-4]$/.test(e.key)){answerMcq(+e.key-1);return}
     return;
