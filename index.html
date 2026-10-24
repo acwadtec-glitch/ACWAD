@@ -237,6 +237,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
         <div class="score"><span id="h-score">0</span><small>نقطة</small></div>
         <div class="coins" id="h-coins" title="العملات"><i class="coin-ic"></i><span id="h-coinn">0</span></div>
         <div class="pips" id="pips" aria-label="الطاقة"></div>
+        <button class="mini" id="runbtn" type="button">الجري: لا</button>
         <button class="mini" id="snd" type="button">الصوت: شغال</button>
         <div class="roster" id="roster" hidden></div>
       </div>
@@ -263,6 +264,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
         <div class="fb" id="pz-fb" hidden></div>
         <div class="row">
           <button class="btn" id="pz-hintbtn" type="button">تلميح (-25 نقطة)</button>
+          <button class="btn gold" id="pz-hintcoin" type="button">تلميح بـ 5 عملات</button>
           <button class="btn" id="pz-leave" type="button">ارجع</button>
           <button class="btn primary grow" id="pz-next" type="button" hidden>متابعة</button>
         </div>
@@ -283,6 +285,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
       <dl class="keys" id="s-keys" hidden>
         <dt>الحركة</dt><dd><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> أو الأسهم</dd>
         <dt>الكاميرا</dt><dd>اسحب بالماوس على المشهد</dd>
+        <dt>الجري</dt><dd>اضغط <kbd>Shift</kbd> أو زرار "الجري" فوق</dd>
         <dt>التفاعل</dt><dd><kbd>E</kbd> أو <kbd>Enter</kbd> جنب أي جهاز</dd>
         <dt>موبايل</dt><dd>العصا للحركة، اسحب للكاميرا، وزر "تفاعل"</dd>
       </dl>
@@ -831,6 +834,20 @@ function thumb(d){
 var COIN_MEM=null,OWN_MEM=null,coins=[],REACH_MEM=null;
 function getReach(){if(REACH_MEM!==null)return REACH_MEM;try{REACH_MEM=Math.max(0,parseInt(localStorage.getItem('codeworld-reach')||'0',10)||0)}catch(e){REACH_MEM=0}return REACH_MEM}
 function setReach(v){if(v<=getReach())return;REACH_MEM=v;try{localStorage.setItem('codeworld-reach',String(v))}catch(e){}}
+function dayKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function dailyState(){
+  var o=null;try{o=JSON.parse(localStorage.getItem('codeworld-daily')||'null')}catch(e){}
+  var today=dayKey(new Date()),y=new Date(Date.now()-864e5),streak=1;
+  if(o&&o.d===today)return{ready:false,streak:o.s};
+  if(o&&o.d===dayKey(y))streak=Math.min(7,(o.s||0)+1);
+  return{ready:true,streak:streak,reward:10*streak};
+}
+function claimDaily(){
+  var st=dailyState();if(!st.ready)return 0;
+  DAILY_MEM=true;try{localStorage.setItem('codeworld-daily',JSON.stringify({d:dayKey(new Date()),s:st.streak}))}catch(e){}
+  addCoins(st.reward);sfx('portal');return st.reward;
+}
+var DAILY_MEM=false;
 function startFrom(){var e=$('s-lvl');return Math.max(0,Math.min(LEVELS.length-1,(e&&+e.value?+e.value:1)-1))}
 function lvlRender(){
   var e=$('s-lvl');if(!e)return;var top=Math.min(LEVELS.length,getReach()+1),cur=e.value?+e.value:top;
@@ -1068,6 +1085,13 @@ function renderChars(){
     b.addEventListener('click',function(){if(lock)openPrev();else setChar(c[0])});
     box.appendChild(b);
   });
+  var ds=DAILY_MEM?{ready:false}:dailyState();
+  if(ds.ready){
+    var db=document.createElement('button');db.type='button';db.className='btn primary';
+    db.textContent='هديتك اليومية: +'+ds.reward+' عملة';
+    db.addEventListener('click',function(){var r=claimDaily();$('s-charhint').textContent='خدت '+r+' عملة. ارجع بكرة عشان تزوّد السلسلة لحد 7 أيام.';renderChars();$('s-charhint').textContent='خدت '+r+' عملة. ارجع بكرة عشان تزوّد السلسلة لحد 7 أيام.'});
+    box.appendChild(db);
+  }
   var sb=document.createElement('button');sb.type='button';sb.className='btn gold';
   sb.textContent='متجر الشخصيات · '+getCoins()+' عملة';
   sb.addEventListener('click',openShop);box.appendChild(sb);
@@ -1595,6 +1619,7 @@ function startHum(){
     lp.connect(humG);humG.connect(AC.destination);
   }catch(e){}
 }
+$('runbtn').addEventListener('click',function(){RUN=!RUN;this.textContent='الجري: '+(RUN?'آه':'لا')});
 $('snd').addEventListener('click',function(){
   S.sound=!S.sound;this.textContent='الصوت: '+(S.sound?'شغال':'مقفول');
   if(humG)humG.gain.value=S.sound?.035:0;
@@ -1795,8 +1820,13 @@ function startLevel(i,keep){
   hud();
 }
 function gameOver(){
-  S.score=S.levelStartScore;
-  showScreen({kicker:'ENERGY: 0',title:'السيستم <span>وقع</span>',text:'الطاقة خلصت. هنرجع لأول المرحلة بنقاطك اللي قبلها.',btn:'حاول تاني',onClick:function(){startLevel(S.level)}});
+  var keep=S.score;S.score=S.levelStartScore;
+  var can=getCoins()>=20;
+  showScreen({kicker:'ENERGY: 0',title:'السيستم <span>وقع</span>',text:'الطاقة خلصت. هنرجع لأول المرحلة بنقاطك اللي قبلها'+(can?'، أو تكمّل مكانك بـ 20 عملة.':'.'),btn:'حاول تاني',onClick:function(){startLevel(S.level)},
+    btn2:can?'كمّل بـ 20 عملة':'',onClick2:can?function(){
+      addCoins(-20);S.score=keep;S.energy=3;hideScreen();S.mode='play';app.setAttribute('data-mode','play');resetKeys();hud();
+      S.flash='رجعت بطاقة كاملة.';S.flashUntil=performance.now()+2500;
+    }:null});
 }
 function levelDone(){
   var newNova=false;if(S.level>=2&&!novaUnlocked()){unlockNova();newNova=true;S.novaNew=true}
@@ -1891,7 +1921,8 @@ function openPuzzle(t){
   var code=$('pz-code');code.hidden=!p.code;code.textContent=p.code||'';
   fbEl.hidden=true;$('pz-hint').hidden=true;
   $('pz-next').hidden=true;$('pz-leave').hidden=false;
-  $('pz-hintbtn').hidden=false;$('pz-hintbtn').disabled=false;
+  $('pz-hintbtn').hidden=false;$('pz-hintbtn').disabled=false;S.hintPaid=false;
+  var hc=$('pz-hintcoin');hc.hidden=false;hc.disabled=getCoins()<5;
   optsEl.innerHTML='';
   if(p.kind==='mcq'){
     optsEl.hidden=false;$('pz-num').hidden=true;
@@ -1937,7 +1968,7 @@ function finish(ok){
   S.answered=true;
   var p=S.pz,el=(performance.now()-S.t0)/1000,head,extra='';
   if(ok){
-    var base=100*S.cur.tier,bonus=Math.max(0,40-Math.floor(el)),award=Math.max(10,base+bonus-(S.hint?25:0));
+    var base=100*S.cur.tier,bonus=Math.max(0,40-Math.floor(el)),award=Math.max(10,base+bonus-((S.hint&&!S.hintPaid)?25:0));
     S.score+=award;S.solved++;markSolved(S.cur);
     head='صح! +'+award+' نقطة';sfx('ok');
   }else{
@@ -1949,7 +1980,7 @@ function finish(ok){
   var b=document.createElement('b');b.textContent=head;fbEl.appendChild(b);
   fbEl.appendChild(document.createTextNode(extra+(p.e||'')));
   fbEl.hidden=false;
-  $('pz-hintbtn').hidden=true;$('pz-leave').hidden=true;$('pz-hint').hidden=true;
+  $('pz-hintbtn').hidden=true;$('pz-hintcoin').hidden=true;$('pz-leave').hidden=true;$('pz-hint').hidden=true;
   var nx=$('pz-next');nx.hidden=false;
   nx.textContent=(S.energy<=0)?'كمّل':'متابعة';
   setTimeout(function(){nx.focus()},30);
@@ -1965,9 +1996,10 @@ $('pz-next').addEventListener('click',function(){
 });
 $('pz-check').addEventListener('click',answerNum);
 $('pz-leave').addEventListener('click',leavePuzzle);
-$('pz-hintbtn').addEventListener('click',function(){
+function useHint(paid){
   if(S.answered||S.hint)return;
-  S.hint=true;this.disabled=true;
+  if(paid){if(getCoins()<5)return;addCoins(-5);S.hintPaid=true}
+  S.hint=true;$('pz-hintbtn').disabled=true;$('pz-hintcoin').disabled=true;
   var h=$('pz-hint');
   if(S.pz.kind==='mcq'){
     var wrong=[];
@@ -1976,12 +2008,15 @@ $('pz-hintbtn').addEventListener('click',function(){
     h.textContent='شلنا اختيارين غلط.';
   }else h.textContent=S.pz.hint||'';
   h.hidden=false;
-});
+}
+$('pz-hintbtn').addEventListener('click',function(){useHint(false)});
+$('pz-hintcoin').addEventListener('click',function(){useHint(true)});
 
 /* ---------- input ---------- */
 var K={up:0,down:0,left:0,right:0},JOY={x:0,y:0};
 var KEYMAP={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
-function resetKeys(){K.up=K.down=K.left=K.right=0}
+var RUN=false;
+function resetKeys(){K.up=K.down=K.left=K.right=0;K.run=0}
 window.addEventListener('keydown',function(e){
   if(SPL.on){if(e.key==='Enter'||e.key===' '){e.preventDefault();$('spl-go').click()}return}
   if(CINE.on){if(e.key==='Enter'||e.key===' '||e.key==='Escape'){e.preventDefault();endCine()}return}
@@ -2011,10 +2046,11 @@ window.addEventListener('keydown',function(e){
     if(!S.answered&&S.pz&&S.pz.kind==='mcq'&&/^[1-4]$/.test(e.key)){answerMcq(+e.key-1);return}
     return;
   }
+  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){K.run=1;return}
   if(KEYMAP[e.code]){K[KEYMAP[e.code]]=1;e.preventDefault();return}
   if(S.mode==='play'&&tag!=='BUTTON'&&(e.code==='KeyE'||e.code==='Enter'||e.code==='Space')){e.preventDefault();interact()}
 });
-window.addEventListener('keyup',function(e){if(KEYMAP[e.code])K[KEYMAP[e.code]]=0});
+window.addEventListener('keyup',function(e){if(e.code==='ShiftLeft'||e.code==='ShiftRight')K.run=0;if(KEYMAP[e.code])K[KEYMAP[e.code]]=0});
 window.addEventListener('blur',resetKeys);
 
 var joy=$('joy'),knob=$('knob'),joyId=null;
@@ -2066,7 +2102,7 @@ function update(dt){
   if(m>.06){
     var s=Math.sin(camYaw),c=Math.cos(camYaw);
     var mx=-s*iz+c*ix,mz=-c*iz-s*ix;
-    var sp=7.5*dt;
+    var sp=((K.run||RUN)?12:7.5)*dt;
     hero.position.x+=mx*sp;hero.position.z+=mz*sp;
     collide();
     var target=Math.atan2(mx,mz),d=target-hero.rotation.y;
