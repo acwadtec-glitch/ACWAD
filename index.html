@@ -223,6 +223,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--hair);backgrou
 .shop-tabs{display:flex;gap:6px;flex-wrap:wrap}.shop-tabs .btn{min-height:32px;padding:4px 10px;font-size:13px}
 .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;overflow:auto;min-height:90px;flex:1;padding:2px}
 .sc{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px 5px;background:var(--panel);border:1px solid var(--hair);cursor:pointer;color:var(--fg);font-size:11px}
+.sc.vip{border-color:#ffd700;box-shadow:0 0 10px rgba(255,215,0,.45)}
 .sc.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .sc canvas{width:48px;height:64px;display:block}
 .sc .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -626,7 +627,7 @@ function makeHero(opt){
 }
 
 /* ---------- coins, wallet and the character shop ---------- */
-var RAR=['عادية','نادرة','ملحمية','أسطورية'],RARC=['#9fb0cc','#3d9bff','#b066ff','#ffb02e'];
+var RAR=['عادية','نادرة','ملحمية','أسطورية','VIP'],RARC=['#9fb0cc','#3d9bff','#b066ff','#ffb02e','#ffd700'],VIP_ID=50,VIP_PRICE=100000;
 var SHOP=[
  {n:'سامر الطالب',r:0,p:25,sk:0xe0ac84,hr:0x16120e,tp:0x2f6fd1,bt:0x1b2540,tr:0xffb02e,ac:['bag'],bg:0xc0392b},
  {n:'ليلى المصممة',r:0,p:25,sk:0xf0c4a4,hr:0x4a2a1a,hs:'long',tp:0x8e44ad,bt:0x2b2b3a,sh:0xffffff,tr:0xff8fc7,hg:'phones',hc:0x222a3c},
@@ -677,7 +678,8 @@ var SHOP=[
  {n:'ظل الاغتيال',r:3,p:450,sk:0xe0ac84,tp:0x0d0d12,bt:0x0d0d12,sh:0x0d0d12,tr:0xff1f3d,hg:'hood+mask',hc:0x0d0d12,eyes:'visor',ey:0xff1f3d,lt:0xff1f3d,ac:['cape','sword'],cp:0x1a0a14},
  {n:'الهاكر الأسطوري',r:3,p:500,sk:0xe0ac84,tp:0x0b2e17,gl:1,ts:'stripe',tr:0x3dff7a,bt:0x07140c,sh:0x3dff7a,hg:'hood',hc:0x0b2e17,eyes:'visor',ey:0x3dff7a,lt:0x3dff7a,ac:['orb','bag'],oc:0x3dff7a,bg:0x0b2e17},
  {n:'التنين الذهبي',r:3,p:520,z:1.1,sk:0xffc928,skE:0xffa000,hs:'none',tp:0xffb300,gl:1,ts:'armor',tr:0xfff2b0,bt:0xb8791a,sh:0xfff2b0,hg:'horns',ey:0xff3b3b,lt:0xffc928,ac:['wings','tail'],wt:'dragon',wc:0xffb300,tc:0xffc928,tl:0xfff2b0},
- {n:'إله الرعد',r:3,p:550,z:1.14,sk:0xe8b98f,hr:0xffe14a,hs:'spike',bd:1,tp:0x1b3a8a,gl:1,ts:'armor',tr:0xffe14a,bt:0x14275a,sh:0xffe14a,lt:0xffe14a,ac:['cape','staff'],cp:0x1b3a8a,oc:0xffe14a}
+ {n:'إله الرعد',r:3,p:550,z:1.14,sk:0xe8b98f,hr:0xffe14a,hs:'spike',bd:1,tp:0x1b3a8a,gl:1,ts:'armor',tr:0xffe14a,bt:0x14275a,sh:0xffe14a,lt:0xffe14a,ac:['cape','staff'],cp:0x1b3a8a,oc:0xffe14a},
+ {n:'الملك الذهبي VIP',r:4,p:100000,vip:1,z:1.2,sk:0xffd24a,skE:0xffa000,mt:.7,hr:0xfff2b0,hs:'spike',tp:0xffc400,tm:.8,gl:1,ts:'armor',tr:0xfff6c8,bt:0xd49a00,sh:0xfff6c8,hg:'crown',eyes:'visor',ey:0xffffff,lt:0xffd700,ac:['cape','wings','sword','aura','orb'],cp:0xffb300,wt:'dragon',wc:0xffc400,oc:0xfff2b0}
 ];
 function makeChar(d,opt){
   opt=opt||{};
@@ -783,6 +785,12 @@ function makeChar(d,opt){
     else if(a==='bag'){box(.5,.64,.22,M(d.bg||0x2b3f8f),0,1.3,-.33);box(.3,.24,.06,trim,0,1.2,-.46)}
     else if(a==='scarf'){var sm=M(d.sf||tr);box(.64,.18,.56,sm,0,1.72,0);box(.16,.5,.05,sm,.2,1.42,.24)}
     else if(a==='book'){box(.34,.44,.1,M(0x7a3b1e),0,-.8,.2,armL);box(.28,.38,.04,M(0xf1e6c8),0,-.8,.26,armL)}
+    else if(a==='aura'){
+      var au=new THREE.Group();g.add(au);
+      var arr=new THREE.Mesh(new THREE.TorusGeometry(1.0,.05,8,36),B(0xffd700));arr.rotation.x=Math.PI/2;arr.position.y=.06;au.add(arr);
+      for(var aq=0;aq<4;aq++){var cb=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.2),B(0xfff2b0)),an=aq*Math.PI/2;cb.position.set(Math.cos(an)*1.1,1.1+(aq%2)*.55,Math.sin(an)*1.1);au.add(cb)}
+      u.aura=au;
+    }
     else if(a==='orb'){
       var fx=new THREE.Group();fx.position.set(.66,2.0,-.45);g.add(fx);
       var oc=new THREE.Mesh(new THREE.OctahedronGeometry(.16,0),B(d.oc||0x7fe8ff));fx.add(oc);
@@ -849,7 +857,19 @@ function thumb(d){
   if(has('book'))F(0x7a3b1e,2,34,8,9);
   return c;
 }
-var COIN_MEM=null,OWN_MEM=null,coins=[],REACH_MEM=null;
+var COIN_MEM=null,OWN_MEM=null,coins=[],REACH_MEM=null,vipStatue=null;
+function isVip(){return CHAR.sel==='s'+VIP_ID}
+function buildVip(){
+  var x=7,z=0,g=new THREE.Group();g.position.set(x,0,z);
+  var gm=new THREE.MeshStandardMaterial({color:0xffc400,emissive:0xb07a00,emissiveIntensity:.6,metalness:.9,roughness:.25});
+  var ped=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.5,.5,16),gm);ped.position.y=.25;g.add(ped);
+  var rg=new THREE.Mesh(new THREE.TorusGeometry(1.4,.05,8,40),new THREE.MeshBasicMaterial({color:0xffd700}));rg.rotation.x=Math.PI/2;rg.position.y=.52;g.add(rg);
+  var m=makeChar(SHOP[VIP_ID],{light:false});m.position.y=.5;g.add(m);
+  var pl=new THREE.PointLight(0xffd700,1,14);pl.position.set(0,2.5,0);g.add(pl);
+  var tag=makeTag();drawTag(tag,'VIP · 100,000 عملة');tag.sp.position.y=4.7;tag.sp.scale.set(4.4,1.1,1);g.add(tag.sp);
+  worldGroup.add(g);obstacles.push({x:x,z:z,hw:1.4,hd:1.4});
+  vipStatue={x:x,z:z,g:g,m:m};
+}
 function getReach(){if(REACH_MEM!==null)return REACH_MEM;try{REACH_MEM=Math.max(0,parseInt(localStorage.getItem('codeworld-reach')||'0',10)||0)}catch(e){REACH_MEM=0}return REACH_MEM}
 function setReach(v){if(v<=getReach())return;REACH_MEM=v;try{localStorage.setItem('codeworld-reach',String(v))}catch(e){}}
 function dayKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
@@ -891,7 +911,7 @@ function ownsShop(i){return ownedList().indexOf(i)>=0}
 function giveShop(i){if(ownsShop(i))return;ownedList().push(i);try{localStorage.setItem('codeworld-owned',JSON.stringify(OWN_MEM))}catch(e){}}
 function coinUI(){
   var e=$('h-coinn');if(e)e.textContent=getCoins();
-  var b=$('shop-bal');if(b)b.textContent=getCoins();
+  var b=$('shop-bal');if(b)b.textContent=getCoins().toLocaleString('en');
 }
 function coinPulse(){var c=$('h-coins');if(!c)return;c.classList.remove('pulse');void c.offsetWidth;c.classList.add('pulse')}
 function spawnCoins(L,aisles){
@@ -932,11 +952,12 @@ function spawnCoins(L,aisles){
 function collectCoins(now){
   for(var i=coins.length-1;i>=0;i--){
     var c=coins[i];
-    if(Math.hypot(c.x-hero.position.x,c.z-hero.position.z)<1.5){
+    if(Math.hypot(c.x-hero.position.x,c.z-hero.position.z)<(isVip()?4.5:1.5)){
       c.g.visible=false;coins.splice(i,1);
-      addCoins(c.v);S.lvlCoins=(S.lvlCoins||0)+c.v;
+      var cv=c.v*(isVip()?2:1);
+      addCoins(cv);S.lvlCoins=(S.lvlCoins||0)+cv;
       sfx('coin');coinPulse();
-      S.flash='+'+c.v+' عملة';S.flashUntil=now+900;
+      S.flash='+'+cv+' عملة';S.flashUntil=now+900;
     }
   }
 }
@@ -946,7 +967,7 @@ function spinCoins(t){
 
 /* ---- shop screen ---- */
 var SHUI={on:false,sel:0,tab:'all'},THUMBS=[];
-var SHTABS=[['all','الكل'],['own','متملوكة'],[0,'عادية'],[1,'نادرة'],[2,'ملحمية'],[3,'أسطورية']];
+var SHTABS=[['all','الكل'],['own','متملوكة'],[0,'عادية'],[1,'نادرة'],[2,'ملحمية'],[3,'أسطورية'],[4,'VIP']];
 function shopVisible(i){
   var t=SHUI.tab;
   if(t==='all')return true;
@@ -969,7 +990,7 @@ function shopRender(){
     shown++;
     var own=ownsShop(i),eq=CHAR.sel==='s'+i;
     var card=document.createElement('button');card.type='button';
-    card.className='sc'+(SHUI.sel===i?' sel':'')+(own?' own':'');
+    card.className='sc'+(SHUI.sel===i?' sel':'')+(own?' own':'')+(d.vip?' vip':'');
     card.setAttribute('data-i',i);
     var rb=document.createElement('i');rb.className='rb';rb.style.background=RARC[d.r];card.appendChild(rb);
     if(!THUMBS[i])THUMBS[i]=thumb(d);
@@ -978,7 +999,7 @@ function shopRender(){
     var pr=document.createElement('span');pr.className='pr';
     if(eq)pr.textContent='مستخدمة';
     else if(own)pr.textContent='متملوكة';
-    else{var ic=document.createElement('i');ic.className='coin-ic';pr.appendChild(ic);pr.appendChild(document.createTextNode(d.p))}
+    else{var ic=document.createElement('i');ic.className='coin-ic';pr.appendChild(ic);pr.appendChild(document.createTextNode(d.p.toLocaleString('en')))}
     card.appendChild(pr);
     card.addEventListener('click',function(){shopPick(i)});
     grid.appendChild(card);
@@ -995,9 +1016,9 @@ function shopInfo(){
     pr.textContent=eq?'مستخدمة دلوقتي':'متملوكة';
     bt.textContent=eq?'مستخدمة':'استخدم الشخصية';bt.disabled=eq;bt.className='btn primary';
   }else{
-    var ic=document.createElement('i');ic.className='coin-ic';pr.appendChild(ic);pr.appendChild(document.createTextNode(' '+d.p));
+    var ic=document.createElement('i');ic.className='coin-ic';pr.appendChild(ic);pr.appendChild(document.createTextNode(' '+d.p.toLocaleString('en')));
     if(have>=d.p){bt.textContent='اشتري';bt.disabled=false}
-    else{bt.textContent='ناقصك '+(d.p-have)+' عملة';bt.disabled=true}
+    else{bt.textContent='ناقصك '+(d.p-have).toLocaleString('en')+' عملة';bt.disabled=true}
     bt.className='btn primary';
   }
   coinUI();
@@ -1584,6 +1605,7 @@ function buildLevel(i){
   var rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.BufferAttribute(arr,3));
   rain=new THREE.Points(rg,new THREE.PointsMaterial({color:line,size:.4,transparent:true,opacity:.95,depthWrite:false}));
   rain.frustumCulled=false;worldGroup.add(rain);
+  vipStatue=null;buildVip();
   spawnCoins(L,aisles);
 }
 
@@ -2168,6 +2190,7 @@ function update(dt){
 
   var txt='',showAct=false;
   if(near){txt=isTouch?'اضغط "تفاعل" لفتح الجهاز':'اضغط E لفتح الجهاز';showAct=true}
+  else if(vipStatue&&Math.hypot(vipStatue.x-hero.position.x,vipStatue.z-hero.position.z)<5)txt=isVip()?'شخصيتك الذهبية VIP: العملات ×2 ومغناطيس':('شخصية VIP الذهبية · 100,000 عملة · معاك '+getCoins().toLocaleString('en'));
   else if(S.flashUntil>now)txt=S.flash;
   else if(!S.portalOpen&&portal&&Math.hypot(portal.x-hero.position.x,portal.z-hero.position.z)<7)txt='البوابة مقفولة. حلّ كل الأجهزة الأول.';
   setTip(txt,showAct);
@@ -2215,6 +2238,7 @@ function drawMap(ts){
   }
   for(i=0;i<terminals.length;i++){var t=terminals[i];mark(t.x,t.z,t.solved?'#3ddc97':'#35e0ff',4.5,false)}
   if(portal)mark(portal.x,portal.z,S.portalOpen?'#3ddc97':'#8da0c4',5.5,true);
+  if(vipStatue)mark(vipStatue.x,vipStatue.z,'#ffd700',4,true);
   Object.keys(REM).forEach(function(k){var m=REM[k];if(m.g&&m.g.visible)mark(m.g.position.x,m.g.position.z,'#c07bff',3,false)});
   mmX.restore();
   mmX.fillStyle='#ffb02e';mmX.beginPath();mmX.moveTo(C,C-9);mmX.lineTo(C+7,C+8);mmX.lineTo(C,C+4);mmX.lineTo(C-7,C+8);mmX.closePath();mmX.fill();
@@ -2225,6 +2249,8 @@ function animateWorld(dt,t){
   u.armL.rotation.x=sw;u.armR.rotation.x=-sw;u.legL.rotation.x=-sw;u.legR.rotation.x=sw;
   hero.position.y=Math.abs(Math.sin(S.walkT*10))*.07*S.amp;
   if(u.fx){u.fx.position.y=2+Math.sin(t*2.2)*.07;u.fx.rotation.z=Math.sin(t*1.3)*.08}
+  if(u.aura)u.aura.rotation.y+=dt*1.6;
+  if(vipStatue){vipStatue.m.rotation.y+=dt*.6;var vu=vipStatue.m.userData;if(vu.aura)vu.aura.rotation.y+=dt*1.6;if(vu.fx)vu.fx.position.y=2+Math.sin(t*2.2)*.07}
   if(S.mode==='menu'){hero.rotation.y+=dt*.4}
   var i;
   for(i=0;i<terminals.length;i++){
@@ -2349,7 +2375,7 @@ function onNetPeers(ch){
     var r=REM[p.peer]||addRemote(p),pr=p.presence||{};
     r.by=p.by;
     if(typeof pr.x==='number'&&typeof pr.z==='number'){r.tx=nnum(pr.x,-200,200);r.tz=nnum(pr.z,-200,200);r.tr=nnum(pr.r,-7,7)}
-    var hh=Math.round(nnum(pr.h,0,59));if(hh!==r.h)setRemoteStyle(r,hh);
+    var hh=Math.round(nnum(pr.h,0,70));if(hh!==r.h)setRemoteStyle(r,hh);
     r.pn=cleanName(pr.n);
     if(pr.f===1&&!r.fin){r.fin=1;if(S.raceFirst===null&&S.mode==='play'&&!S.fin){S.raceFirst=r.pn||r.name||'لاعب';S.flash=S.raceFirst+' سبقك وخلّص السيرفر!';S.flashUntil=performance.now()+4000}}
     r.s=nnum(pr.s,0,99);r.t=nnum(pr.t,0,99);r.sc=nnum(pr.c,0,1000000);
@@ -2371,6 +2397,7 @@ function remoteTick(dt){
     var u=r.g.userData,sw=Math.sin(r.wt*10)*.9*r.amp;
     u.armL.rotation.x=sw;u.armR.rotation.x=-sw;u.legL.rotation.x=-sw;u.legR.rotation.x=sw;
     if(u.fx){u.fx.position.y=2+Math.sin(performance.now()/450)*.07}
+    if(u.aura)u.aura.rotation.y+=dt*1.6;
   });
 }
 function sendPresence(force){
